@@ -29,4 +29,14 @@ addListener('#open-doc', 'submit', (e) => {
 
 
 // Initialize editor
-window.doc = new Document('#editor', socket);
+const Editor = toastui.Editor;
+
+const editor = new Editor({
+  el: document.querySelector('#editor'),
+  height: '500px',
+  initialEditType: 'wysiwyg',
+  previewStyle: 'vertical',
+  usageStatistics: false
+});
+
+window.doc = new Document(editor, socket);

@@ -41,12 +41,12 @@ defmodule Collab.Document do
 
   @impl true
   def init({:ok, content}) do
-    # state = @initial_state
-    state = %{
-      version: 0,
-      changes: [],
-      content: content,
-    }
+    state = @initial_state
+    # state = %{
+      # version: 0,
+      # changes: [],
+      # content: content,
+    # }
     {:ok, state}
   end
 

@@ -9,11 +9,11 @@ export default class Document {
   committing = null; // Local change being currently pushed
   queued = null;     // Pending change yet to be pushed
 
-  constructor(selector, socket) {
-    this.editor = document.querySelector(selector);
+  constructor(editor, socket) {
+    this.editor = editor
 
     if (this.editor) {
-      const id = this.editor.dataset.id;
+      const id = document.querySelector("#name").value
       this.channel = socket.channel(`doc:${id}`, {});
 
       // Join document channel and set up event listeners
@@ -22,7 +22,9 @@ export default class Document {
         .receive('ok', () => {
           this.channel.on('open', (resp) => this.onOpen(resp));
           this.channel.on('update', (resp) => this.onRemoteUpdate(resp));
-          this.editor.addEventListener('input', (e) => this.onLocalUpdate(e.target));
+          this.editor.eventEmitter.listen(this.editor.eventEmitter.eventTypes.keyup, () =>
+            this.onLocalUpdate(this.editor.getMarkdown())
+          );
         })
         .receive('error', (resp) => {
           console.log('Socket Error', resp)
@@ -44,7 +46,7 @@ export default class Document {
 
 
   // Track and push local changes
-  onLocalUpdate({ value }) {
+  onLocalUpdate(value) {
     this.logState('CURRENT STATE');
 
     const newDelta = new Delta().insert(value);
@@ -119,11 +121,11 @@ export default class Document {
 
   // Flatten delta to plain text and display value in editor
   updateEditor(position) {
-    this.editor.value =
+    this.editor.setMarkdown(
       this.contents.reduce((text, op) => {
         const val = (typeof op.insert === 'string') ? op.insert : '';
         return text + val;
-      }, '');
+      }, ''));
 
     if (position) {
       this.editor.selectionStart = position;

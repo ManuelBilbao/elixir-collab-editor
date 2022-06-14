@@ -1,4 +1,6 @@
 <h2>Document ID: <code><%= @id %></code></h2>
 
-<textarea id="editor" data-id="<%= @id %>" placeholder="Start writing…">
-</textarea>
+<input type="hidden" id="name" value="<%= @id %>" />
+
+<div id="editor" data-name="<=% @id %>"></div>
+
