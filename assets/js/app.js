@@ -30,13 +30,15 @@ addListener('#open-doc', 'submit', (e) => {
 
 // Initialize editor
 const Editor = toastui.Editor;
+const { codeSyntaxHighlight } = Editor.plugin;
 
 const editor = new Editor({
   el: document.querySelector('#editor'),
   height: '500px',
   initialEditType: 'wysiwyg',
   previewStyle: 'vertical',
-  usageStatistics: false
+  usageStatistics: false,
+  plugins: [codeSyntaxHighlight]
 });
 
 window.doc = new Document(editor, socket);
