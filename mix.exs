@@ -41,7 +41,9 @@ defmodule Collab.MixProject do
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
       {:jason, "~> 1.0"},
-      {:plug_cowboy, "~> 2.0"}
+      {:plug_cowboy, "~> 2.0"},
+      {:ecto_sql, "~> 3.0"},
+      {:ecto_sqlite3, "~> 0.7.5"}
     ]
   end
 

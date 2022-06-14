@@ -1,3 +1,7 @@
+collab_dev.db
+collab_dev.db-wal
+collab_dev.db-shm
+
 # The directory Mix will write compiled artifacts to.
 /_build/
 

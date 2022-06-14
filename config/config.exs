@@ -7,9 +7,18 @@
 # General application configuration
 use Mix.Config
 
+config :collab,
+  ecto_repos: [Collab.Repo]
+
+config :collab, Collab.Repo,
+  database: Path.expand("../collab_dev.db", Path.dirname(__ENV__.file)),
+  pool_size: 5,
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true
+
 # Configures the endpoint
 config :collab, CollabWeb.Endpoint,
-  url: [host: "localhost"],
+  url: [host: "0.0.0.0"],
   secret_key_base: "3vn9BU2hV7SnMVGDHgBxlU0syfNkSdX/SEyYcgFXsioVmk1yh2WeXlFH20a7X7nB",
   render_errors: [view: CollabWeb.ErrorView, accepts: ~w(html json), layout: false],
   pubsub_server: Collab.PubSub,

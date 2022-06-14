@@ -3,6 +3,7 @@ defmodule Collab.Application do
 
   def start(_type, _args) do
     children = [
+      Collab.Repo,
       Collab.Document.Supervisor,
       {Phoenix.PubSub, name: Collab.PubSub},
       CollabWeb.Endpoint

@@ -1,9 +1,21 @@
 # Collab
 
-Start server:
+### First time:
 
 ```sh
 npm i --prefix assets
-mix deps.get
+mix setup
+mix ecto.create
+```
+
+### After a pull:
+
+```sh
+mix ecto.migrate
+```
+
+### Start server:
+
+```sh
 mix phx.server
 ```

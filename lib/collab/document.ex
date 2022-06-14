@@ -1,4 +1,5 @@
 defmodule Collab.Document do
+  import Ecto.Query
   use GenServer
   alias __MODULE__.Supervisor
 
@@ -12,7 +13,7 @@ defmodule Collab.Document do
   # Public API
   # ----------
 
-  def start_link(id), do: GenServer.start_link(__MODULE__, :ok, name: name(id))
+  def start_link({id, content}), do: GenServer.start_link(__MODULE__, {:ok, content}, name: name(id))
   def stop(id),       do: GenServer.stop(name(id))
 
   def get_contents(id),        do: call(id, :get_contents)
@@ -20,7 +21,16 @@ defmodule Collab.Document do
 
   def open(id) do
     case GenServer.whereis(name(id)) do
-      nil -> DynamicSupervisor.start_child(Supervisor, {__MODULE__, id})
+      nil ->
+        content = case Collab.Repo.get_by(Collab.Doc, name: id) do
+          nil ->
+            Collab.Doc.changeset(%Collab.Doc{}, %{"name" => id, "content" => ""}) 
+              |> Collab.Repo.insert
+            ""
+          doc -> doc.content
+        end
+      	param = {id, content}
+      	DynamicSupervisor.start_child(Supervisor, {__MODULE__, param})
       pid -> {:ok, pid}
     end
   end
@@ -30,7 +40,15 @@ defmodule Collab.Document do
   # ---------
 
   @impl true
-  def init(:ok), do: {:ok, @initial_state}
+  def init({:ok, content}) do
+    # state = @initial_state
+    state = %{
+      version: 0,
+      changes: [],
+      content: content,
+    }
+    {:ok, state}
+  end
 
   @impl true
   def handle_call(:get_contents, _from, state) do
