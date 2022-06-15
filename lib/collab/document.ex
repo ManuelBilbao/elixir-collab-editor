@@ -13,10 +13,11 @@ defmodule Collab.Document do
   # Public API
   # ----------
 
-  def start_link({id, content}), do: GenServer.start_link(__MODULE__, {:ok, content}, name: name(id))
+  def start_link({id, content}), do: GenServer.start_link(__MODULE__, {:ok, {id, content}}, name: name(id))
   def stop(id),       do: GenServer.stop(name(id))
 
   def get_contents(id),        do: call(id, :get_contents)
+  def save(id),                do: call(id, :save)
   def update(id, change, ver), do: call(id, {:update, change, ver})
 
   def open(id) do
@@ -40,13 +41,14 @@ defmodule Collab.Document do
   # ---------
 
   @impl true
-  def init({:ok, content}) do
-    state = @initial_state
-    # state = %{
-      # version: 0,
-      # changes: [],
-      # content: content,
-    # }
+  def init({:ok, {name, content}}) do
+    # state = @initial_state
+    state = %{
+      name: name,
+      version: 1,
+      changes: [%{"insert" => content}],
+      contents: [%{"insert" => content}],
+    }
     {:ok, state}
   end
 
@@ -54,6 +56,12 @@ defmodule Collab.Document do
   def handle_call(:get_contents, _from, state) do
     response = Map.take(state, [:version, :contents])
     {:reply, response, state}
+  end
+
+  @impl true
+  def handle_call(:save, _from, state) do
+    response = update_database(state)
+    {:reply, elem(response, 0), state}
   end
 
   @impl true
@@ -75,10 +83,15 @@ defmodule Collab.Document do
         |> Enum.reduce(client_change, &Delta.transform(&1, &2, true))
 
       state = %{
+        name: state.name,
         version: state.version + 1,
         changes: [transformed_change | state.changes],
         contents: Delta.compose(state.contents, transformed_change),
       }
+
+      if rem(state.version, 5) == 0 do
+        update_database(state)
+      end
 
       response = %{
         version: state.version,
@@ -89,6 +102,11 @@ defmodule Collab.Document do
     end
   end
 
+  @impl true
+  def terminate(_, state) do
+    update_database(state)
+    {:stop}
+  end
 
   # Private Helpers
   # ---------------
@@ -98,4 +116,12 @@ defmodule Collab.Document do
   end
 
   defp name(id), do: {:global, {:doc, id}}
+
+  defp update_database(state) do
+    content = hd(state[:contents])["insert"]
+    Collab.Doc |>
+      Collab.Repo.get_by(name: state.name) |>
+      Collab.Doc.changeset(%{content: content}) |>
+      Collab.Repo.update
+  end
 end

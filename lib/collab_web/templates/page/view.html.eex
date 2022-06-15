@@ -4,3 +4,4 @@
 
 <div id="editor" data-name="<=% @id %>"></div>
 
+<button type="button" onclick="doc.save(this);">Save</button>
