@@ -1,7 +1,55 @@
-<h2>Document ID: <code><%= @id %></code></h2>
+<h2>Document ID: <code><%= @id %></code><div class="ms-auto"><button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#permissions-modal">Share</button></div></h2>
 
 <input type="hidden" id="name" value="<%= @id %>" />
 
 <div id="editor" data-name="<=% @id %>"></div>
 
 <button type="button" onclick="doc.save(this);">Save</button>
+
+<div class="modal fade" id="permissions-modal" tabindex="-1">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Share</h5>
+				<button class="btn-close" type="button" data-bs-dismiss="modal"></button>
+			</div>
+			<div class="modal-body">
+				<div class="container">
+					<div class="row">
+						<div class="col"><input type="text" placeholder="User key..."></div>
+						<div class="col-auto">
+							<select name="" id="">
+								<option value="0">Reader</option>
+								<option value="1">Editor</option>
+							</select>
+						</div>
+						<div class="col-auto"><input type="submit" value="Add"></div>
+					</div>
+
+					<hr>
+
+					<div class="row">
+						<div class="col">Manu</div>
+						<div class="col-auto">
+							<select name="" id="">
+								<option value="0">Reader</option>
+								<option value="1">Editor</option>
+							</select>
+						</div>
+						<div class="col-auto"><button>X</button></div>
+					</div>
+					<div class="row">
+						<div class="col">Mauri</div>
+						<div class="col-auto">
+							<select name="" id="">
+								<option value="0">Reader</option>
+								<option value="1">Editor</option>
+							</select>
+						</div>
+						<div class="col-auto"><button>X</button></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
