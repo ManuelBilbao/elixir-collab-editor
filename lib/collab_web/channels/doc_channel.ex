@@ -21,6 +21,12 @@ defmodule CollabWeb.DocChannel do
   end
 
   @impl true
+  def handle_in("save", _, socket) do
+    response = Document.save(socket.assigns.id)
+    {:reply, response, socket}
+  end
+
+  @impl true
   def handle_in("update", %{"change" => change, "version" => version}, socket) do
     case Document.update(socket.assigns.id, change, version) do
       {:ok, response} ->

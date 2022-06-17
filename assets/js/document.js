@@ -117,7 +117,12 @@ export default class Document {
     this.logState('UPDATED STATE');
   }
 
-
+  save(e) {
+    this.channel
+      .push("save")
+      .receive("ok", () => this.updateButton(e, "Saved!") )
+      .receive("error", () => this.updateButton(e, "Error!") );
+  }
 
   // Flatten delta to plain text and display value in editor
   updateEditor(position) {
@@ -138,5 +143,19 @@ export default class Document {
       version: this.version,
       contents: this.contents && this.contents.ops[0] && this.contents.ops[0].insert,
     });
+  }
+
+  updateButton(button, text)  {
+    const prevText = button.innerText;
+
+    button.disabled = true;
+    button.classList.add("button-outline");
+    button.innerText = text;
+
+    setTimeout(() => {
+      button.innerText = prevText;
+      button.classList.remove("button-outline");
+      button.disabled = false;
+    }, 1500);
   }
 };
