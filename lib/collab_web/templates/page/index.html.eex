@@ -1,14 +1,12 @@
 <section class="phx-hero row">
   <div class="column">
-    <h2>New Document</h2>
-    <button id="new-doc">Create New</button>
-  </div>
-
-  <div class="column">
-    <h2>Open Existing</h2>
+    <h2>Open/Create Document</h2>
     <form id="open-doc">
-      <input name="id" type="text" placeholder="Document ID" required />
-      <button type="submit">Open</button>
+	    <input name="id" type="text" placeholder="Document name" required />
+	    <br>
+		<input name="key" type="text" placeholder="Key" required />
+		<br>
+	    <button type="submit">Go</button>
     </form>
   </div>
 </section>

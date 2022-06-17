@@ -14,17 +14,12 @@ const addListener = (selector, event, fun) => {
 };
 
 
-// New Document
-addListener('#new-doc', 'click', (e) => {
-  const randomId = Math.random().toString(36).substring(2, 7);
-  window.location = `/${randomId}`;
-});
-
 // Open existing document
 addListener('#open-doc', 'submit', (e) => {
   e.preventDefault();
   const id = new FormData(e.target).get('id');
-  window.location = `/${id}`;
+  const key = new FormData(e.target).get("key");
+  window.location = `/${id}/${key}/`;
 });
 
 
