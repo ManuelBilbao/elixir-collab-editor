@@ -4,12 +4,21 @@ defmodule CollabWeb.DocChannel do
   require Logger
 
   @impl true
-  def join("doc:" <> id, _payload, socket) do
-    {:ok, _pid} = Document.open(id)
-    socket = assign(socket, :id, id)
-    send(self(), :after_join)
+  def join("doc:" <> id <> ":" <> key, _payload, socket) do
 
-    {:ok, socket}
+    case Collab.Repo.get_by(Collab.Doc, name: id) do
+      nil ->
+        Document.new(id, key)
+      doc ->
+        respond = Document.open(id, key, doc.content)
+        if responde[1] != :ok do
+          {:error, 0}
+        else
+          socket = assign(socket, :id, id)
+          send(self(), :after_join)
+          {:ok, socket}
+        end
+    end
   end
 
   @impl true
@@ -27,8 +36,8 @@ defmodule CollabWeb.DocChannel do
   end
 
   @impl true
-  def handle_in("update", %{"change" => change, "version" => version}, socket) do
-    case Document.update(socket.assigns.id, change, version) do
+  def handle_in("update", %{"change" => change, "version" => version, "key" => key}, socket) do
+    case Document.update(socket.assigns.id, change, version, key) do
       {:ok, response} ->
         # Process.sleep(1000)
         broadcast_from!(socket, "update", response)

@@ -18,24 +18,30 @@ defmodule Collab.Document do
 
   def get_contents(id),        do: call(id, :get_contents)
   def save(id),                do: call(id, :save)
-  def update(id, change, ver), do: call(id, {:update, change, ver})
+  def update(id, change, ver, key), do: call(id, {:update, change, ver, key})
 
-  def open(id) do
-    case GenServer.whereis(name(id)) do
-      nil ->
-        content = case Collab.Repo.get_by(Collab.Doc, name: id) do
-          nil ->
-            Collab.Doc.changeset(%Collab.Doc{}, %{"name" => id, "content" => ""}) 
-              |> Collab.Repo.insert
-            ""
-          doc -> doc.content
-        end
-      	param = {id, content}
-      	DynamicSupervisor.start_child(Supervisor, {__MODULE__, param})
-      pid -> {:ok, pid}
-    end
+  def new(id, key) do
+
+    Collab.Doc.changeset(%Collab.Doc{}, %{"name" => id, "content" => ""})
+      |> Collab.Repo.insert
+    Collab.Permiso.changeset(%Collab.Permiso{}, %{"document" => id, "perm" => 3, "user" => key})
+      |> Collab.Repo.insert
+    param = {id, ""}
+    DynamicSupervisor.start_child(Supervisor, {__MODULE__, param})
+
   end
 
+  def open(id, key, content) do
+    case Collab.Repo.get_by(Collab.Permiso, [document: id, user: key]) do
+      nil -> {:error, 0}
+      perm -> case GenServer.whereis(name(id)) do
+        nil ->
+          param = {id, content}
+          DynamicSupervisor.start_child(Supervisor, {__MODULE__, param})
+        pid -> {:ok, pid}
+      end
+    end
+  end
 
   # Callbacks
   # ---------
@@ -65,40 +71,48 @@ defmodule Collab.Document do
   end
 
   @impl true
-  def handle_call({:update, client_change, client_version}, _from, state) do
-    if client_version > state.version do
-      # Error when client version is inconsistent with
-      # server state
-      {:reply, {:error, :server_behind}, state}
-    else
-      # Check how far behind client is
-      changes_count = state.version - client_version
+  def handle_call({:update, client_change, client_version, client_key}, _from, state) do
+    case Collab.Repo.get_by(Collab.Permiso, [document: state.name, user: client_key]) do
+      nil -> {:reply, {:error, :permission_denied}, state}
+      perm ->
+        if perm.perm == 0 do
+          {:reply, {:error, :permission_denied}, state}
+        else
+          if client_version > state.version do
+            # Error when client version is inconsistent with
+            # server state
+            {:reply, {:error, :server_behind}, state}
+          else
+            # Check how far behind client is
+            changes_count = state.version - client_version
 
-      # Transform client change if it was sent on an
-      # older version of the document
-      transformed_change =
-        state.changes
-        |> Enum.take(changes_count)
-        |> Enum.reverse()
-        |> Enum.reduce(client_change, &Delta.transform(&1, &2, true))
+            # Transform client change if it was sent on an
+            # older version of the document
+            transformed_change =
+              state.changes
+              |> Enum.take(changes_count)
+              |> Enum.reverse()
+              |> Enum.reduce(client_change, &Delta.transform(&1, &2, true))
 
-      state = %{
-        name: state.name,
-        version: state.version + 1,
-        changes: [transformed_change | state.changes],
-        contents: Delta.compose(state.contents, transformed_change),
-      }
+            state = %{
+              name: state.name,
+              version: state.version + 1,
+              changes: [transformed_change | state.changes],
+              contents: Delta.compose(state.contents, transformed_change),
+            }
 
-      if rem(state.version, 5) == 0 do
-        update_database(state)
-      end
+            if rem(state.version, 5) == 0 do
+              update_database(state)
+            end
 
-      response = %{
-        version: state.version,
-        change: transformed_change,
-      }
+            response = %{
+              version: state.version,
+              change: transformed_change,
+            }
 
-      {:reply, {:ok, response}, state}
+            {:reply, {:ok, response}, state}
+          end
+        end
     end
   end
 
