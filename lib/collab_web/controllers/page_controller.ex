@@ -6,6 +6,12 @@ defmodule CollabWeb.PageController do
   end
 
   def view(conn, %{"id" => id, "key" => key}) do
-    render(conn, "view.html", id: id)
+    # render(conn, "view.html", id: id)
+
+    # es lo mismo, pero te permite pasar mas parametros al template
+    conn
+    |> assign(:id, id)
+    |> assign(:key, key)
+    |> render("view.html")
   end
 end

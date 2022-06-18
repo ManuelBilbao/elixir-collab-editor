@@ -1,10 +1,11 @@
 <h2>Document ID: <code><%= @id %></code><div class="ms-auto" style="margin: 10px 0;"><button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#permissions-modal">Share</button></div></h2>
 
 <input type="hidden" id="name" value="<%= @id %>" />
+<input type="hidden" id="key" value="<%= @key %>" />
 
 <div id="editor" data-name="<=% @id %>" style="padding: 0; margin: 10px 0;"></div>
 
-<button type="button" onclick="doc.save(this);">Save</button>
+<button type="button" onclick="doc.save(this);" style="border-radius: 0.4rem; width: 90px;">Save</button>
 
 <div class="modal fade" id="permissions-modal" tabindex="-1">
 	<div class="modal-dialog modal-dialog-centered">

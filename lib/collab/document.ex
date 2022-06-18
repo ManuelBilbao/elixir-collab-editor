@@ -6,40 +6,48 @@ defmodule Collab.Document do
   @initial_state %{
     version: 0,
     changes: [],
-    contents: [],
+    contents: []
   }
-
 
   # Public API
   # ----------
 
-  def start_link({id, content}), do: GenServer.start_link(__MODULE__, {:ok, {id, content}}, name: name(id))
-  def stop(id),       do: GenServer.stop(name(id))
+  def start_link({id, content}),
+    do: GenServer.start_link(__MODULE__, {:ok, {id, content}}, name: name(id))
 
-  def get_contents(id),        do: call(id, :get_contents)
-  def save(id),                do: call(id, :save)
-  def update(id, change, ver, key), do: call(id, {:update, change, ver, key})
+  def stop(id), do: GenServer.stop(name(id))
+
+  def get_contents(id, key, content), do: call(id, key, content, :get_contents)
+  def save(id, key, content), do: call(id, key, content, :save)
+
+  def update(id, change, ver, key, content),
+    do: call(id, key, content, {:update, change, ver, key})
 
   def new(id, key) do
-
     Collab.Doc.changeset(%Collab.Doc{}, %{"name" => id, "content" => ""})
-      |> Collab.Repo.insert
-    Collab.Permiso.changeset(%Collab.Permiso{}, %{"document" => id, "perm" => 3, "user" => key})
-      |> Collab.Repo.insert
+    |> Collab.Repo.insert()
+
+    Collab.Permiso.changeset(%Collab.Permiso{}, %{"document" => id, "perm" => 2, "user" => key})
+    |> Collab.Repo.insert()
+
     param = {id, ""}
     DynamicSupervisor.start_child(Supervisor, {__MODULE__, param})
-
   end
 
   def open(id, key, content) do
-    case Collab.Repo.get_by(Collab.Permiso, [document: id, user: key]) do
-      nil -> {:error, 0}
-      perm -> case GenServer.whereis(name(id)) do
-        nil ->
-          param = {id, content}
-          DynamicSupervisor.start_child(Supervisor, {__MODULE__, param})
-        pid -> {:ok, pid}
-      end
+    case Collab.Repo.get_by(Collab.Permiso, document: id, user: key) do
+      nil ->
+        {:error, 0}
+
+      perm ->
+        case GenServer.whereis(name(id)) do
+          nil ->
+            param = {id, content}
+            DynamicSupervisor.start_child(Supervisor, {__MODULE__, param})
+
+          pid ->
+            {:ok, pid}
+        end
     end
   end
 
@@ -53,8 +61,9 @@ defmodule Collab.Document do
       name: name,
       version: 1,
       changes: [%{"insert" => content}],
-      contents: [%{"insert" => content}],
+      contents: [%{"insert" => content}]
     }
+
     {:ok, state}
   end
 
@@ -72,8 +81,10 @@ defmodule Collab.Document do
 
   @impl true
   def handle_call({:update, client_change, client_version, client_key}, _from, state) do
-    case Collab.Repo.get_by(Collab.Permiso, [document: state.name, user: client_key]) do
-      nil -> {:reply, {:error, :permission_denied}, state}
+    case Collab.Repo.get_by(Collab.Permiso, document: state.name, user: client_key) do
+      nil ->
+        {:reply, {:error, :permission_denied}, state}
+
       perm ->
         if perm.perm == 0 do
           {:reply, {:error, :permission_denied}, state}
@@ -98,7 +109,7 @@ defmodule Collab.Document do
               name: state.name,
               version: state.version + 1,
               changes: [transformed_change | state.changes],
-              contents: Delta.compose(state.contents, transformed_change),
+              contents: Delta.compose(state.contents, transformed_change)
             }
 
             if rem(state.version, 5) == 0 do
@@ -107,7 +118,7 @@ defmodule Collab.Document do
 
             response = %{
               version: state.version,
-              change: transformed_change,
+              change: transformed_change
             }
 
             {:reply, {:ok, response}, state}
@@ -125,17 +136,18 @@ defmodule Collab.Document do
   # Private Helpers
   # ---------------
 
-  defp call(id, data) do
-    with {:ok, pid} <- open(id), do: GenServer.call(pid, data)
+  defp call(id, key, content, data) do
+    with {:ok, pid} <- open(id, key, content), do: GenServer.call(pid, data)
   end
 
   defp name(id), do: {:global, {:doc, id}}
 
   defp update_database(state) do
     content = hd(state[:contents])["insert"]
-    Collab.Doc |>
-      Collab.Repo.get_by(name: state.name) |>
-      Collab.Doc.changeset(%{content: content}) |>
-      Collab.Repo.update
+
+    Collab.Doc
+    |> Collab.Repo.get_by(name: state.name)
+    |> Collab.Doc.changeset(%{content: content})
+    |> Collab.Repo.update()
   end
 end
