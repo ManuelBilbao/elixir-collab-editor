@@ -14,6 +14,7 @@ defmodule CollabWeb.DocChannel do
           {:error, desc} ->
             Logger.error(inspect(desc))
             {:error, desc}
+
           {:ok, _pid} ->
             socket = assign(socket, :id, id)
             socket = assign(socket, :key, key)
@@ -25,8 +26,7 @@ defmodule CollabWeb.DocChannel do
 
   @impl true
   def handle_info(:after_join, socket) do
-    response =
-      Document.get_contents(socket.assigns.id, socket.assigns.key)
+    response = Document.get_contents(socket.assigns.id, socket.assigns.key)
 
     push(socket, "open", response)
 
@@ -55,5 +55,15 @@ defmodule CollabWeb.DocChannel do
         Logger.error(inspect(error))
         {:reply, {:error, inspect(error)}, socket}
     end
+  end
+
+  @impl true
+  def handle_in(
+        "get_users_permissions",
+        %{},
+        socket
+      ) do
+    response = Document.get_users_permissions(socket.assigns.id, socket.assigns.key)
+    {:reply, response, socket}
   end
 end

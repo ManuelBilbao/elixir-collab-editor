@@ -3,7 +3,6 @@ defmodule Collab.Document do
   use GenServer
   alias __MODULE__.Supervisor
 
-
   # Public API
   # ----------
 
@@ -14,6 +13,7 @@ defmodule Collab.Document do
 
   def get_contents(id, key), do: call(id, {:get_contents, key})
   def save(id, key), do: call(id, {:save, key})
+  def get_users_permissions(id, key), do: call(id, {:get_users_permissions, key})
 
   def update(id, change, ver, key), do: call(id, {:update, change, ver, key})
 
@@ -39,7 +39,7 @@ defmodule Collab.Document do
 
   @impl true
   def init({:ok, name}) do
-    perm_query = from p in Collab.Permiso, where: p.document == ^name, select: {p.user, p.perm}
+    perm_query = from(p in Collab.Permiso, where: p.document == ^name, select: {p.user, p.perm})
     content = Collab.Repo.get_by(Collab.Doc, name: name).content
 
     state = %{
@@ -56,7 +56,9 @@ defmodule Collab.Document do
   @impl true
   def handle_call({:get_contents, key}, _from, state) do
     case has_perms(key, state.permissions) do
-      nil -> {:reply, {:error, :permission_denied}, state}
+      nil ->
+        {:reply, {:error, :permission_denied}, state}
+
       _perm ->
         response = Map.take(state, [:version, :contents])
         {:reply, response, state}
@@ -66,11 +68,38 @@ defmodule Collab.Document do
   @impl true
   def handle_call({:save, key}, _from, state) do
     case has_perms(key, state.permissions) do
-      nil -> {:reply, {:error, :permission_denied}, state}
-      0 -> {:reply, {:error, :permission_denied}, state}
+      nil ->
+        {:reply, {:error, :permission_denied}, state}
+
+      0 ->
+        {:reply, {:error, :permission_denied}, state}
+
       _perm ->
         response = update_database(state)
         {:reply, elem(response, 0), state}
+    end
+  end
+
+  @impl true
+  def handle_call({:get_users_permissions, key}, _from, state) do
+    case has_perms(key, state.permissions) do
+      nil ->
+        {:reply, {:error, :permission_denied}, state}
+
+      0 ->
+        {:reply, {:error, :permission_denied}, state}
+
+      1 ->
+        {:reply, {:error, :permission_denied}, state}
+
+      2 ->
+        perm_query =
+          from(p in Collab.Permiso,
+            where: p.document == ^state.name and p.user != ^key,
+            select: {p.user, p.perm}
+          )
+
+        {:reply, perm_query, state}
     end
   end
 
@@ -79,8 +108,10 @@ defmodule Collab.Document do
     case has_perms(client_key, state.permissions) do
       nil ->
         {:reply, {:error, :permission_denied}, state}
+
       0 ->
         {:reply, {:error, :permission_denied}, state}
+
       _perm ->
         if client_version > state.version do
           # Error when client version is inconsistent with
@@ -133,7 +164,9 @@ defmodule Collab.Document do
     case GenServer.whereis(name(id)) do
       nil ->
         DynamicSupervisor.start_child(Supervisor, {__MODULE__, id})
-      pid -> {:ok, pid}
+
+      pid ->
+        {:ok, pid}
     end
   end
 
