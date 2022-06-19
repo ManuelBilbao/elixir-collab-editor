@@ -4,20 +4,21 @@ defmodule CollabWeb.DocChannel do
   require Logger
 
   @impl true
-  def join("doc:" <> id, payload, socket) do
+  def join("doc:" <> id, %{"key" => key}, socket) do
     case Collab.Repo.get_by(Collab.Doc, name: id) do
       nil ->
-        Document.new(id, payload[:key])
+        Document.new(id, key)
 
-      doc ->
-        respond = Document.open(id, payload[:key], doc.content)
-
-        if elem(respond, 0) != :ok do
-          {:error, 0}
-        else
-          socket = assign(socket, :id, id)
-          send(self(), :after_join)
-          {:ok, socket}
+      _doc ->
+        case Document.open(id, key) do
+          {:error, desc} ->
+            Logger.error(inspect(desc))
+            {:error, desc}
+          {:ok, _pid} ->
+            socket = assign(socket, :id, id)
+            socket = assign(socket, :key, key)
+            send(self(), :after_join)
+            {:ok, socket}
         end
     end
   end
@@ -25,7 +26,7 @@ defmodule CollabWeb.DocChannel do
   @impl true
   def handle_info(:after_join, socket) do
     response =
-      Document.get_contents(socket.assigns.id, socket.assigns.key, socket.assigns.content)
+      Document.get_contents(socket.assigns.id, socket.assigns.key)
 
     push(socket, "open", response)
 
@@ -33,18 +34,18 @@ defmodule CollabWeb.DocChannel do
   end
 
   @impl true
-  def handle_in("save", %{"key" => key, "content" => content}, socket) do
-    response = Document.save(socket.assigns.id, key, content)
+  def handle_in("save", %{}, socket) do
+    response = Document.save(socket.assigns.id, socket.assigns.key)
     {:reply, response, socket}
   end
 
   @impl true
   def handle_in(
         "update",
-        %{"change" => change, "version" => version, "key" => key, "content" => content},
+        %{"change" => change, "version" => version},
         socket
       ) do
-    case Document.update(socket.assigns.id, change, version, key, content) do
+    case Document.update(socket.assigns.id, change, version, socket.assigns.key) do
       {:ok, response} ->
         # Process.sleep(1000)
         broadcast_from!(socket, "update", response)

@@ -15,7 +15,7 @@ export default class Document {
         if (this.editor) {
             const id = document.querySelector("#name").value;
             const key = document.querySelector("#key").value;
-            this.channel = socket.channel(`doc:${id}`, { id, key });
+            this.channel = socket.channel(`doc:${id}`, { key });
 
             // Join document channel and set up event listeners
             this.channel
@@ -71,10 +71,8 @@ export default class Document {
             this.committing = change;
 
             // setTimeout(() => {
-            const key = document.querySelector("#key").value;
-            const content = this.editor.el.value;
             this.channel
-                .push("update", { change: change.ops, version, key, content })
+                .push("update", { change: change.ops, version })
                 .receive("ok", (resp) => {
                     console.log("ACK RECEIVED FOR", version, change.ops);
                     this.committing = null;
@@ -123,10 +121,8 @@ export default class Document {
     }
 
     save(e) {
-        const key = document.querySelector("#key").value;
-        const content = this.editor.el.value;
         this.channel
-            .push("save", { key, content })
+            .push("save", {})
             .receive("ok", () => this.updateButton(e, "Saved!"))
             .receive("error", () => this.updateButton(e, "Error!"));
     }

@@ -3,25 +3,19 @@ defmodule Collab.Document do
   use GenServer
   alias __MODULE__.Supervisor
 
-  @initial_state %{
-    version: 0,
-    changes: [],
-    contents: []
-  }
 
   # Public API
   # ----------
 
-  def start_link({id, content}),
-    do: GenServer.start_link(__MODULE__, {:ok, {id, content}}, name: name(id))
+  def start_link(id),
+    do: GenServer.start_link(__MODULE__, {:ok, id}, name: name(id))
 
   def stop(id), do: GenServer.stop(name(id))
 
-  def get_contents(id, key, content), do: call(id, key, content, :get_contents)
-  def save(id, key, content), do: call(id, key, content, :save)
+  def get_contents(id, key), do: call(id, {:get_contents, key})
+  def save(id, key), do: call(id, {:save, key})
 
-  def update(id, change, ver, key, content),
-    do: call(id, key, content, {:update, change, ver, key})
+  def update(id, change, ver, key), do: call(id, {:update, change, ver, key})
 
   def new(id, key) do
     Collab.Doc.changeset(%Collab.Doc{}, %{"name" => id, "content" => ""})
@@ -30,24 +24,13 @@ defmodule Collab.Document do
     Collab.Permiso.changeset(%Collab.Permiso{}, %{"document" => id, "perm" => 2, "user" => key})
     |> Collab.Repo.insert()
 
-    param = {id, ""}
-    DynamicSupervisor.start_child(Supervisor, {__MODULE__, param})
+    get_thread(id)
   end
 
-  def open(id, key, content) do
+  def open(id, key) do
     case Collab.Repo.get_by(Collab.Permiso, document: id, user: key) do
-      nil ->
-        {:error, 0}
-
-      perm ->
-        case GenServer.whereis(name(id)) do
-          nil ->
-            param = {id, content}
-            DynamicSupervisor.start_child(Supervisor, {__MODULE__, param})
-
-          pid ->
-            {:ok, pid}
-        end
+      nil -> {:error, :permission_denied}
+      _perm -> get_thread(id)
     end
   end
 
@@ -55,74 +38,84 @@ defmodule Collab.Document do
   # ---------
 
   @impl true
-  def init({:ok, {name, content}}) do
-    # state = @initial_state
+  def init({:ok, name}) do
+    perm_query = from p in Collab.Permiso, where: p.document == ^name, select: {p.user, p.perm}
+    content = Collab.Repo.get_by(Collab.Doc, name: name).content
+
     state = %{
       name: name,
       version: 1,
       changes: [%{"insert" => content}],
-      contents: [%{"insert" => content}]
+      contents: [%{"insert" => content}],
+      permissions: Collab.Repo.all(perm_query)
     }
 
     {:ok, state}
   end
 
   @impl true
-  def handle_call(:get_contents, _from, state) do
-    response = Map.take(state, [:version, :contents])
-    {:reply, response, state}
+  def handle_call({:get_contents, key}, _from, state) do
+    case has_perms(key, state.permissions) do
+      nil -> {:reply, {:error, :permission_denied}, state}
+      _perm ->
+        response = Map.take(state, [:version, :contents])
+        {:reply, response, state}
+    end
   end
 
   @impl true
-  def handle_call(:save, _from, state) do
-    response = update_database(state)
-    {:reply, elem(response, 0), state}
+  def handle_call({:save, key}, _from, state) do
+    case has_perms(key, state.permissions) do
+      nil -> {:reply, {:error, :permission_denied}, state}
+      0 -> {:reply, {:error, :permission_denied}, state}
+      _perm ->
+        response = update_database(state)
+        {:reply, elem(response, 0), state}
+    end
   end
 
   @impl true
   def handle_call({:update, client_change, client_version, client_key}, _from, state) do
-    case Collab.Repo.get_by(Collab.Permiso, document: state.name, user: client_key) do
+    case has_perms(client_key, state.permissions) do
       nil ->
         {:reply, {:error, :permission_denied}, state}
-
-      perm ->
-        if perm.perm == 0 do
-          {:reply, {:error, :permission_denied}, state}
+      0 ->
+        {:reply, {:error, :permission_denied}, state}
+      _perm ->
+        if client_version > state.version do
+          # Error when client version is inconsistent with
+          # server state
+          {:reply, {:error, :server_behind}, state}
         else
-          if client_version > state.version do
-            # Error when client version is inconsistent with
-            # server state
-            {:reply, {:error, :server_behind}, state}
-          else
-            # Check how far behind client is
-            changes_count = state.version - client_version
+          # Check how far behind client is
+          changes_count = state.version - client_version
 
-            # Transform client change if it was sent on an
-            # older version of the document
-            transformed_change =
-              state.changes
-              |> Enum.take(changes_count)
-              |> Enum.reverse()
-              |> Enum.reduce(client_change, &Delta.transform(&1, &2, true))
+          # Transform client change if it was sent on an
+          # older version of the document
+          transformed_change =
+            state.changes
+            |> Enum.take(changes_count)
+            |> Enum.reverse()
+            |> Enum.reduce(client_change, &Delta.transform(&1, &2, true))
 
-            state = %{
-              name: state.name,
-              version: state.version + 1,
-              changes: [transformed_change | state.changes],
-              contents: Delta.compose(state.contents, transformed_change)
-            }
+          state = %{
+            name: state.name,
+            version: state.version + 1,
+            changes: [transformed_change | state.changes],
+            contents: Delta.compose(state.contents, transformed_change),
+            permissions: state.permissions
+          }
 
-            if rem(state.version, 5) == 0 do
-              update_database(state)
-            end
-
-            response = %{
-              version: state.version,
-              change: transformed_change
-            }
-
-            {:reply, {:ok, response}, state}
+          if rem(state.version, 5) == 0 do
+            update_database(state)
           end
+
+          response = %{
+            version: state.version,
+            change: transformed_change
+          }
+
+          {:reply, {:ok, response}, state}
         end
     end
   end
@@ -136,11 +129,26 @@ defmodule Collab.Document do
   # Private Helpers
   # ---------------
 
-  defp call(id, key, content, data) do
-    with {:ok, pid} <- open(id, key, content), do: GenServer.call(pid, data)
+  defp get_thread(id) do
+    case GenServer.whereis(name(id)) do
+      nil ->
+        DynamicSupervisor.start_child(Supervisor, {__MODULE__, id})
+      pid -> {:ok, pid}
+    end
+  end
+
+  defp call(id, data) do
+    with {:ok, pid} <- get_thread(id), do: GenServer.call(pid, data)
   end
 
   defp name(id), do: {:global, {:doc, id}}
+
+  defp has_perms(key, permissions) do
+    case List.keyfind(permissions, key, 0) do
+      nil -> nil
+      {^key, perm} -> perm
+    end
+  end
 
   defp update_database(state) do
     content = hd(state[:contents])["insert"]
