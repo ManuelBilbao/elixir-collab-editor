@@ -1,4 +1,10 @@
-<h2>Document ID: <code><%= @id %></code><div class="ms-auto" style="margin: 10px 0;"><button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#permissions-modal">Share</button></div></h2>
+<h2>Document ID: <code><%= @id %></code>
+	<div class="ms-auto" style="margin: 10px 0;">
+		<button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#permissions-modal">
+			Share
+		</button>
+	</div>
+</h2>
 
 <input type="hidden" id="name" value="<%= @id %>" />
 <input type="hidden" id="key" value="<%= @key %>" />
@@ -24,12 +30,39 @@
 								<option value="1">Editor</option>
 							</select>
 						</div>
-						<div class="col-auto"><input type="submit" value="Add" style="margin-top: 5px; width: 90px;"></div>
+						<div class="col-auto"><input type="submit" value="Add" style="width: 90px;"></div>
 					</div>
 
-					<hr style="margin-right: 15px;">
+					<hr>
 
-					<div class="row" style="margin-top: 20px;">
+					<%= for item <- @users_permissions do %>
+						<p><%= item %></p>
+
+						<div class="row" style="margin-top: 20px;">
+							<h3><%= item.user %></h3>
+							<div class="col-auto">
+
+							<%= if item.perm == 0 do %>
+								<select name="" id="" style="width: 100%;">
+									<option selected="selected" value="0">Reader</option>
+									<option value="1">Editor</option>
+								</select>
+							<% end %>
+
+							<%= if item.perm == 1 do %>
+								<select name="" id="" style="width: 100%;">
+									<option value="0">Reader</option>
+									<option selected="selected" value="1">Editor</option>
+								</select>
+							<% end %>
+
+							</div>
+							<div class="col-auto"><button style="border-radius: 0.4rem; width: 90px;">X</button></div>
+						</div>
+					<% end %>
+
+
+					<%# <div class="row" style="margin-top: 20px;">
 						<h3>Manu</h3>
 						<div class="col-auto">
 							<select name="" id="" style="width: 100%;">
@@ -37,7 +70,7 @@
 								<option value="1">Editor</option>
 							</select>
 						</div>
-						<div class="col-auto"><button style="border-radius: 0.4rem; margin-top: 5px; width: 90px;">X</button></div>
+						<div class="col-auto"><button style="border-radius: 0.4rem; width: 90px;">X</button></div>
 					</div>
 					<div class="row" style="margin-top: 20px;">
 						<h3>Mauri</h3>
@@ -47,8 +80,8 @@
 								<option value="1">Editor</option>
 							</select>
 						</div>
-						<div class="col-auto"><button style="border-radius: 0.4rem; margin-top: 5px; width: 90px;">X</button></div>
-					</div>
+						<div class="col-auto"><button style="border-radius: 0.4rem; width: 90px;">X</button></div>
+					</div> %>
 				</div>
 			</div>
 		</div>

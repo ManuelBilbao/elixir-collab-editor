@@ -9,6 +9,8 @@ export default class Document {
     committing = null; // Local change being currently pushed
     queued = null; // Pending change yet to be pushed
 
+    usersPermissions = null;
+
     constructor(editor, socket) {
         this.editor = editor;
 
@@ -33,6 +35,11 @@ export default class Document {
                 .receive("error", (resp) => {
                     console.log("Socket Error", resp);
                 });
+
+            this.channel
+                .push("get_users_permissions", {})
+                .receive("ok", (resp) => (this.usersPermissions = resp));
+            console.log(this.usersPermissions);
         }
     }
 
