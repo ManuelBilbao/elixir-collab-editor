@@ -5,23 +5,23 @@ defmodule CollabWeb.DocChannel do
 
   @impl true
   def join("doc:" <> id, %{"key" => key}, socket) do
-    case Collab.Repo.get_by(Collab.Doc, name: id) do
-      nil ->
-        Document.new(id, key)
-
-      _doc ->
-        case Document.open(id, key) do
-          {:error, desc} ->
-            Logger.error(inspect(desc))
-            {:error, desc}
-
-          {:ok, _pid} ->
-            socket = assign(socket, :id, id)
-            socket = assign(socket, :key, key)
-            send(self(), :after_join)
-            {:ok, socket}
-        end
+    func = case Collab.Repo.get_by(Collab.Doc, name: id) do
+      nil -> &Document.new/2
+      _doc -> &Document.open/2
     end
+
+    case func.(id, key) do
+      {:error, desc} ->
+        Logger.error(inspect(desc))
+        {:error, desc}
+
+      {:ok, _pid} ->
+        socket = assign(socket, :id, id)
+        socket = assign(socket, :key, key)
+        send(self(), :after_join)
+        {:ok, socket}
+    end
+
   end
 
   @impl true

@@ -99,10 +99,10 @@ defmodule Collab.Document do
         perm_query =
           from(p in Collab.Permiso,
             where: p.document == ^state.name and p.user != ^key,
-            select: {p.user, p.perm}
+            select: %{user: p.user, perm: p.perm}
           )
 
-        {:reply, perm_query, state}
+        {:reply, {:ok, Collab.Repo.all(perm_query)}, state}
     end
   end
 
