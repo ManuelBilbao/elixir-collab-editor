@@ -40,7 +40,10 @@ defmodule Collab.Document do
   @impl true
   def init({:ok, name}) do
     perm_query = from(p in Collab.Permiso, where: p.document == ^name, select: {p.user, p.perm})
-    content = Collab.Repo.get_by(Collab.Doc, name: name).content
+    content = case Collab.Repo.get_by(Collab.Doc, name: name).content do
+      nil -> ""
+      c -> c
+    end
 
     state = %{
       name: name,
