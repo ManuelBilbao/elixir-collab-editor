@@ -11,40 +11,69 @@ export default class Document {
 
     usersPermissions = null;
 
-    constructor(editor, socket) {
-        this.editor = editor;
+    constructor(socket) {
+        const id = document.querySelector("#name").value;
+        const key = document.querySelector("#key").value;
+        this.channel = socket.channel(`doc:${id}`, { key });
 
-        if (this.editor) {
-            const id = document.querySelector("#name").value;
-            const key = document.querySelector("#key").value;
-            this.channel = socket.channel(`doc:${id}`, { key });
+        // Join document channel and set up event listeners
+        this.channel
+            .join()
+            .receive("ok", () => {
+                this.channel.on("open", (resp) => this.onOpen(resp));
+                this.channel.on("update", (resp) =>
+                    this.onRemoteUpdate(resp)
+                );
+            })
+            .receive("error", (resp) => {
+                console.log("Socket Error", resp);
+            });
+    }
 
-            // Join document channel and set up event listeners
-            this.channel
-                .join()
-                .receive("ok", () => {
-                    this.channel.on("open", (resp) => this.onOpen(resp));
-                    this.channel.on("update", (resp) =>
-                        this.onRemoteUpdate(resp)
-                    );
-                    this.editor.eventEmitter.listen(
-                        this.editor.eventEmitter.eventTypes.keyup,
-                        () => this.onLocalUpdate(this.editor.getMarkdown())
-                    );
-                })
-                .receive("error", (resp) => {
-                    console.log("Socket Error", resp);
-                });
+    initEditor() {
+        const Editor = toastui.Editor;
+        const { codeSyntaxHighlight } = Editor.plugin;
 
-            this.channel
-                .push("get_users_permissions", {})
-                .receive("ok", (resp) => (this.usersPermissions = resp));
-            console.log(this.usersPermissions);
-        }
+
+        const editor = new Editor({
+          el: document.querySelector('#editor'),
+          height: '500px',
+          initialEditType: 'wysiwyg',
+          previewStyle: 'vertical',
+          usageStatistics: false,
+          plugins: [codeSyntaxHighlight]
+        });
+
+        editor.eventEmitter.listen(
+            editor.eventEmitter.eventTypes.keyup,
+            () => this.onLocalUpdate(editor.getMarkdown())
+        );
+
+        return editor;
+    }
+
+    initViewer() {
+        const Editor = toastui.Editor;
+        const { codeSyntaxHighlight } = Editor.plugin;
+
+        const viewer = Editor.factory({
+            el: document.querySelector("#editor"),
+            viewer: true,
+            height: "500px",
+            usageStatistics: false,
+            plugins: [codeSyntaxHighlight]
+        });
+
+        viewer.preview.previewContent.style.border = "1px solid gray";
+        viewer.preview.previewContent.style.padding = "1em 2em";
+
+        return viewer;
     }
 
     // Show initial contents on joining the document channel
-    onOpen({ contents, version }) {
+    onOpen({ contents, version, perm }) {
+        this.editor = (perm == 0) ? this.initViewer() : this.initEditor();
+
         this.logState("CURRENT STATE");
 
         this.version = version;

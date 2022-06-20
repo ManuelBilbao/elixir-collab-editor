@@ -26,7 +26,9 @@ defmodule CollabWeb.DocChannel do
 
   @impl true
   def handle_info(:after_join, socket) do
-    response = Document.get_contents(socket.assigns.id, socket.assigns.key)
+    contents = Document.get_contents(socket.assigns.id, socket.assigns.key)
+    perm = Collab.Repo.get_by(Collab.Permiso, document: socket.assigns.id, user: socket.assigns.key)
+    response = Map.put(contents, :perm, perm.perm)
 
     push(socket, "open", response)
 
