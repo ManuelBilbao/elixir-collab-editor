@@ -15,6 +15,10 @@ defmodule Collab.Document do
   def save(id, key), do: call(id, {:save, key})
   def get_users_permissions(id, key), do: call(id, {:get_users_permissions, key})
 
+  def add_users_permission(id, key, user_key, user_perm), do: call(id, {:add_users_permissions, key, user_key, user_perm})
+  def update_users_permission(id, key, user_key, user_perm), do: call(id, {:update_users_permissions, key, user_key, user_perm})
+  def remove_users_permission(id, key, user_key), do: call(id, {:remove_users_permissions, key, user_key})
+
   def update(id, change, ver, key), do: call(id, {:update, change, ver, key})
 
   def new(id, key) do
@@ -156,6 +160,21 @@ defmodule Collab.Document do
           {:reply, {:ok, response}, state}
         end
     end
+  end
+
+  @impl true
+  def handle_call({:add_users_permissions, key, user_key, user_perm}, _from, state) do
+
+  end
+
+  @impl true
+  def handle_call({:update_users_permissions, key, user_key, user_perm}, _from, state) do
+
+  end
+
+  @impl true
+  def handle_call({:remove_users_permissions, key, user_key}, _from, state) do
+
   end
 
   @impl true
