@@ -70,14 +70,6 @@ defmodule CollabWeb.DocChannel do
   end
 
   @impl true
-  def handle_in("add_user_permission",
-               %{"user_key" => key, "new_perm" => perm},
-               socket) do
-    response = Document.add_user_permission(socket.assigns.id, socket.assigns.key, key, perm)
-    {:reply, response, socket}
-  end
-
-  @impl true
   def handle_in("update_user_permission",
                %{"user_key" => key, "new_perm" => perm},
                socket) do

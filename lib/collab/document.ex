@@ -15,9 +15,8 @@ defmodule Collab.Document do
   def save(id, key), do: call(id, {:save, key})
   def get_users_permissions(id, key), do: call(id, {:get_users_permissions, key})
 
-  def add_users_permission(id, key, user_key, user_perm), do: call(id, {:add_users_permissions, key, user_key, user_perm})
-  def update_users_permission(id, key, user_key, user_perm), do: call(id, {:update_users_permissions, key, user_key, user_perm})
-  def remove_users_permission(id, key, user_key), do: call(id, {:remove_users_permissions, key, user_key})
+  def update_user_permission(id, key, user_key, user_perm), do: call(id, {:update_user_permission, key, user_key, user_perm})
+  def remove_user_permission(id, key, user_key), do: call(id, {:remove_user_permission, key, user_key})
 
   def update(id, change, ver, key), do: call(id, {:update, change, ver, key})
 
@@ -168,18 +167,62 @@ defmodule Collab.Document do
   end
 
   @impl true
-  def handle_call({:add_users_permissions, key, user_key, user_perm}, _from, state) do
+  def handle_call({:update_user_permission, key, user_key, user_perm}, _from, state) do
+    case has_perms(key, state.permissions) do
+      nil -> {:reply, {:error, :permission_denied}, state}
 
+      0 -> {:reply, {:error, :permission_denied}, state}
+
+      1 -> {:reply, {:error, :permission_denied}, state}
+
+      _perm -> case has_perms(user_key, state.permissions) do
+        nil -> Collab.Permiso.changeset(%Collab.Permiso{}, %{
+            "document" => state.name,
+            "perm" => user_perm,
+            "user" => user_key
+          }) |> Collab.Repo.insert()
+
+          state = Map.replace(state, :permissions, List.insert_at(state.permissions, 0, {user_key, user_perm}))
+
+          {:reply, :ok, state}
+
+        _perm -> Collab.Permiso
+          |> Collab.Repo.get_by(document: state.name, user: user_key)
+          |> Collab.Permiso.changeset(%{
+            "document" => state.name,
+            "perm" => user_perm,
+            "user" => user_key
+          })
+          |> Collab.Repo.update()
+
+          state = Map.replace(state, :permissions,List.keyreplace(state.permissions, user_key, 0, {user_key, user_perm}))
+
+          {:reply, :ok, state}
+      end
+    end
   end
 
   @impl true
-  def handle_call({:update_users_permissions, key, user_key, user_perm}, _from, state) do
+  def handle_call({:remove_user_permission, key, user_key}, _from, state) do
+    case has_perms(key, state.permissions) do
+      nil -> {:reply, {:error, :permission_denied}, state}
 
-  end
+      0 -> {:reply, {:error, :permission_denied}, state}
 
-  @impl true
-  def handle_call({:remove_users_permissions, key, user_key}, _from, state) do
+      1 -> {:reply, {:error, :permission_denied}, state}
 
+      _perm -> case has_perms(user_key, state.permissions) do
+        nil -> {:reply, :ok, state}
+
+        _perm -> Collab.Permiso
+          |> Collab.Repo.get_by(document: state.name, user: user_key)
+          |> Collab.Repo.delete()
+
+          state = Map.replace(state, :permissions, List.keydelete(state.permissions, user_key, 0))
+
+          {:reply, :ok, state}
+      end
+    end
   end
 
   @impl true
