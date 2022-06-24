@@ -3,7 +3,7 @@
 		<h2 class="mb-0">Document ID: <code><%= @id %></code></h2>
 	</div>
 
-	<%= if @users_permissions do %>
+	<%= if @user_permission > 0  do %>
 		<div class="col-auto">
 			<button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#permissions-modal">
 				Share
@@ -19,7 +19,7 @@
 
 <button type="button" onclick="doc.save(this);" style="border-radius: 0.4rem; width: 90px;">Save</button>
 
-<%= if @users_permissions do %>
+<%= if @user_permission > 0 do %>
 	<div class="modal fade" id="permissions-modal" tabindex="-1">
 		<div class="modal-dialog modal-dialog-centered">
 			<div class="modal-content">
@@ -33,10 +33,12 @@
 							<div class="col"><input type="text" placeholder="User key..."></div>
 							<div class="col-auto">
 								<select name="" id="" style="width: 100%;">
-									<option value="0">Reader</option>
-									<option value="1">Editor</option>
-									
-									<option value="2">Admin</option>
+									<%= for permission <- @refs_permissions do %>
+										<%= if @user_permission > permission.perm do %>
+											<option value= <%= permission.perm %> > <%= permission.desc %> </option>
+										<% end %>
+									<% end %>
+
 								</select>
 							</div>
 							<div class="col-auto"><input type="submit" value="Add" style="width: 90px;"></div>
@@ -44,37 +46,27 @@
 
 						<hr>
 
-						<%= for item <- @users_permissions do %>
+						<%= for user <- @all_users_permissions do %>
 
 							<div class="row" style="margin-top: 20px;">
 								<div class="col align-self-center">
-									<h3 class="mb-0"><%= item.user %></h3>
+									<h3 class="mb-0"><%= user.user %></h3>
 								</div>
 								<div class="col-auto">
+									<select name="" id="" style="width: 100%;">
 
-									<%= if item.perm == 0 do %>
-										<select name="" id="" style="width: 100%;">
-											<option selected="selected" value="0">Reader</option>
-											<option value="1">Editor</option>
-											<option value="2">Admin</option>
-										</select>
-									<% end %>
+										<%= for permission <- @refs_permissions do %>
 
-									<%= if item.perm == 1 do %>
-										<select name="" id="" style="width: 100%;">
-											<option value="0">Reader</option>
-											<option selected="selected" value="1">Editor</option>
-											<option value="2">Admin</option>
-										</select>
-									<% end %>
-
-									<%= if item.perm == 2 do %>
-										<select name="" id="" style="width: 100%;">
-											<option value="0">Reader</option>
-											<option value="1">Editor</option>
-											<option selected="selected" value="2">Admin</option>
-										</select>
-									<% end %>
+											<%= if @user_permission > permission.perm do %>
+												<%= if user.perm == permission.perm do %>
+													<option selected value= <%= permission.perm %> > <%= permission.desc %> </option>
+												<% else %>
+													<option value= <%= permission.perm %> > <%= permission.desc %> </option>
+												<% end %>
+												
+											<% end %>
+										<% end %>
+									</select>
 
 								</div>
 								<div class="col-auto">

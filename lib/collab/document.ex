@@ -18,10 +18,18 @@ defmodule Collab.Document do
   def update(id, change, ver, key), do: call(id, {:update, change, ver, key})
 
   def new(id, key) do
+    # buscando el id del creador en la base no funciona
+    # creator_perm = Collab.PermisosReferencia |> Collab.Repo.get_by(description: "CREADOR")
+
     Collab.Doc.changeset(%Collab.Doc{}, %{"name" => id, "content" => ""})
     |> Collab.Repo.insert()
 
-    Collab.Permiso.changeset(%Collab.Permiso{}, %{"document" => id, "perm" => 3, "user" => key})
+    Collab.Permiso.changeset(%Collab.Permiso{}, %{
+      "document" => id,
+      "perm" => 3,
+      # "perm" => creator_perm,
+      "user" => key
+    })
     |> Collab.Repo.insert()
 
     get_thread(id)
@@ -92,9 +100,6 @@ defmodule Collab.Document do
         {:reply, {:error, :permission_denied}, state}
 
       0 ->
-        {:reply, {:error, :permission_denied}, state}
-
-      1 ->
         {:reply, {:error, :permission_denied}, state}
 
       perm ->
