@@ -210,7 +210,10 @@ defmodule Collab.Document do
   end
 
   defp update_database(state) do
-    content = hd(state[:contents])["insert"]
+    content = case state[:contents] do
+      [] -> ""
+      [h | _] -> h["insert"]
+    end
 
     Collab.Doc
     |> Collab.Repo.get_by(name: state.name)
