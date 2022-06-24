@@ -35,6 +35,8 @@
 								<select name="" id="" style="width: 100%;">
 									<option value="0">Reader</option>
 									<option value="1">Editor</option>
+									
+									<option value="2">Admin</option>
 								</select>
 							</div>
 							<div class="col-auto"><input type="submit" value="Add" style="width: 90px;"></div>
@@ -50,22 +52,34 @@
 								</div>
 								<div class="col-auto">
 
-								<%= if item.perm == 0 do %>
-									<select name="" id="" style="width: 100%;">
-										<option selected="selected" value="0">Reader</option>
-										<option value="1">Editor</option>
-									</select>
-								<% end %>
+									<%= if item.perm == 0 do %>
+										<select name="" id="" style="width: 100%;">
+											<option selected="selected" value="0">Reader</option>
+											<option value="1">Editor</option>
+											<option value="2">Admin</option>
+										</select>
+									<% end %>
 
-								<%= if item.perm == 1 do %>
-									<select name="" id="" style="width: 100%;">
-										<option value="0">Reader</option>
-										<option selected="selected" value="1">Editor</option>
-									</select>
-								<% end %>
+									<%= if item.perm == 1 do %>
+										<select name="" id="" style="width: 100%;">
+											<option value="0">Reader</option>
+											<option selected="selected" value="1">Editor</option>
+											<option value="2">Admin</option>
+										</select>
+									<% end %>
+
+									<%= if item.perm == 2 do %>
+										<select name="" id="" style="width: 100%;">
+											<option value="0">Reader</option>
+											<option value="1">Editor</option>
+											<option selected="selected" value="2">Admin</option>
+										</select>
+									<% end %>
 
 								</div>
-								<div class="col-auto"><button style="border-radius: 0.4rem; width: 90px;">X</button></div>
+								<div class="col-auto">
+									<button style="border-radius: 0.4rem; width: 90px;">X</button>
+								</div>
 							</div>
 						<% end %>
 					</div>

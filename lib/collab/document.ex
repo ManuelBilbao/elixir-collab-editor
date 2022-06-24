@@ -21,7 +21,7 @@ defmodule Collab.Document do
     Collab.Doc.changeset(%Collab.Doc{}, %{"name" => id, "content" => ""})
     |> Collab.Repo.insert()
 
-    Collab.Permiso.changeset(%Collab.Permiso{}, %{"document" => id, "perm" => 2, "user" => key})
+    Collab.Permiso.changeset(%Collab.Permiso{}, %{"document" => id, "perm" => 3, "user" => key})
     |> Collab.Repo.insert()
 
     get_thread(id)
@@ -40,10 +40,12 @@ defmodule Collab.Document do
   @impl true
   def init({:ok, name}) do
     perm_query = from(p in Collab.Permiso, where: p.document == ^name, select: {p.user, p.perm})
-    content = case Collab.Repo.get_by(Collab.Doc, name: name).content do
-      nil -> ""
-      c -> c
-    end
+
+    content =
+      case Collab.Repo.get_by(Collab.Doc, name: name).content do
+        nil -> ""
+        c -> c
+      end
 
     state = %{
       name: name,
@@ -95,14 +97,16 @@ defmodule Collab.Document do
       1 ->
         {:reply, {:error, :permission_denied}, state}
 
-      2 ->
+      perm ->
         perm_query =
           from(p in Collab.Permiso,
-            where: p.document == ^state.name and p.user != ^key,
+            where:
+              p.document == ^state.name and p.user != ^key and
+                p.perm < ^perm,
             select: %{user: p.user, perm: p.perm}
           )
 
-        {:reply, {:ok, Collab.Repo.all(perm_query)}, state}
+        {:reply, Collab.Repo.all(perm_query), state}
     end
   end
 
