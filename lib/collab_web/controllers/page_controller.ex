@@ -15,19 +15,18 @@ defmodule CollabWeb.PageController do
 
     ref_perms = Collab.Repo.all(query_refs_perm)
 
-    user_permission = Collab.Permiso |> Collab.Repo.get_by(document: id, user: key)
-
     case Collab.Doc |> Collab.Repo.get_by(name: id) do
       nil ->
         render(conn, "view.html", %{
           :id => id,
           :key => key,
-          :user_permission => user_permission,
+          :user_permission => 3,
           :all_users_permissions => [],
           :refs_permissions => ref_perms
         })
 
       _doc ->
+        user_permission = Collab.Permiso |> Collab.Repo.get_by(document: id, user: key)
         case user_permission do
           nil ->
             render(conn, "error.html")
