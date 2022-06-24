@@ -163,6 +163,33 @@ export default class Document {
             .receive("error", () => this.updateButton(e, "Error!"));
     }
 
+    addPerm() {
+        let user_key = document.querySelector("[name=new_user_key]").value;
+        let new_perm = document.querySelector("[name=new_user_perm]").value;
+
+        this.channel
+            .push("update_user_permission", {user_key, new_perm})
+            .receive("ok", () => {
+                let list = document.querySelector("#perm-list");
+                let new_item = document.querySelector("#user-list-item").content.cloneNode(true);
+                new_item.querySelector("h3").innerText = user_key;
+                new_item.querySelector("li").dataset["user"] = user_key;
+                new_item.querySelector("select").value = new_perm;
+                new_item.querySelector("button").setAttribute("onclick", `doc.removePerm("${user_key}")`);
+                list.appendChild(new_item);
+            })
+            .receive("error", () => alert("Error al agregar un permiso"));
+    }
+
+    removePerm(user_key) {
+        this.channel
+            .push("remove_user_permission", {user_key})
+            .receive("ok", () => {
+                document.querySelector(`[data-user=${user_key}]`).remove();
+            })
+            .receive("error", () => alert("Error al eliminar un permiso"));
+    }
+
     // Flatten delta to plain text and display value in editor
     updateEditor(position) {
         this.editor.setMarkdown(

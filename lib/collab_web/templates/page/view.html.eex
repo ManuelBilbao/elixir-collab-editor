@@ -30,9 +30,9 @@
 				<div class="modal-body">
 					<div class="container">
 						<div class="row">
-							<div class="col"><input type="text" placeholder="User key..."></div>
+							<div class="col"><input type="text" name="new_user_key" placeholder="User key..."></div>
 							<div class="col-auto">
-								<select name="" id="" style="width: 100%;">
+								<select name="new_user_perm" style="width: 100%;">
 									<%= for permission <- @refs_permissions do %>
 										<%= if @user_permission > permission.perm do %>
 											<option value= <%= permission.perm %> > <%= permission.desc %> </option>
@@ -41,39 +41,64 @@
 
 								</select>
 							</div>
-							<div class="col-auto"><input type="submit" value="Add" style="width: 90px;"></div>
+							<div class="col-auto"><input type="submit" value="Add" style="width: 90px;" onclick="doc.addPerm()"></div>
 						</div>
 
 						<hr>
 
-						<%= for user <- @all_users_permissions do %>
-
-							<div class="row" style="margin-top: 20px;">
-								<div class="col align-self-center">
-									<h3 class="mb-0"><%= user.user %></h3>
-								</div>
-								<div class="col-auto">
-									<select name="" id="" style="width: 100%;">
-
-										<%= for permission <- @refs_permissions do %>
-
-											<%= if @user_permission > permission.perm do %>
-												<%= if user.perm == permission.perm do %>
-													<option selected value= <%= permission.perm %> > <%= permission.desc %> </option>
-												<% else %>
+						<template id="user-list-item">
+							<li>
+								<div class="row">
+									<div class="col align-self-center">
+										<h3 class="mb-0"></h3>
+									</div>
+									<div class="col-auto">
+										<select name="perm" style="width: 100%;">
+											<%= for permission <- @refs_permissions do %>
+												<%= if @user_permission > permission.perm do %>
 													<option value= <%= permission.perm %> > <%= permission.desc %> </option>
 												<% end %>
-												
 											<% end %>
-										<% end %>
-									</select>
+										</select>
 
+									</div>
+									<div class="col-auto">
+										<button style="border-radius: 0.4rem; width: 90px;">X</button>
+									</div>
 								</div>
-								<div class="col-auto">
-									<button style="border-radius: 0.4rem; width: 90px;">X</button>
-								</div>
-							</div>
-						<% end %>
+							</li>
+						</template>
+
+						<ul class="p-0" id="perm-list" style="list-style: none;">
+							<%= for user <- @all_users_permissions do %>
+								<li data-user="<%= user.user %>">
+									<div class="row">
+										<div class="col align-self-center">
+											<h3 class="mb-0"><%= user.user %></h3>
+										</div>
+										<div class="col-auto">
+											<select name="" id="" style="width: 100%;">
+
+												<%= for permission <- @refs_permissions do %>
+
+													<%= if @user_permission > permission.perm do %>
+														<%= if user.perm == permission.perm do %>
+															<option selected value= <%= permission.perm %> > <%= permission.desc %> </option>
+														<% else %>
+															<option value= <%= permission.perm %> > <%= permission.desc %> </option>
+														<% end %>
+													<% end %>
+												<% end %>
+											</select>
+
+										</div>
+										<div class="col-auto">
+											<button style="border-radius: 0.4rem; width: 90px;" onclick="doc.removePerm('<%= user.user %>')">X</button>
+										</div>
+									</div>
+								</li>
+							<% end %>
+						</ul>
 					</div>
 				</div>
 			</div>
