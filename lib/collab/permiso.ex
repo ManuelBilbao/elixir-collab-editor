@@ -3,9 +3,9 @@ defmodule Collab.Permiso do
   import Ecto.Changeset
 
   schema "permisos" do
-    field :document, :string
-    field :perm, :integer
-    field :user, :string
+    field(:document, :string)
+    field(:perm, :integer)
+    field(:user, :string)
 
     timestamps()
   end

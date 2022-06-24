@@ -3,8 +3,8 @@ defmodule Collab.Doc do
   import Ecto.Changeset
 
   schema "documents" do
-    field :content, :string
-    field :name, :string
+    field(:content, :string)
+    field(:name, :string)
 
     timestamps()
   end
