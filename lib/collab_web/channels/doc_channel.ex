@@ -73,15 +73,27 @@ defmodule CollabWeb.DocChannel do
   def handle_in("update_user_permission",
                %{"user_key" => key, "new_perm" => perm},
                socket) do
-    response = Document.update_user_permission(socket.assigns.id, socket.assigns.key, key, perm)
-    {:reply, response, socket}
+    case Document.update_user_permission(socket.assigns.id, socket.assigns.key, key, perm) do
+      :ok ->
+        broadcast_from!(socket, "update_user_permission", %{"user" => key, "perm" => perm})
+        {:reply, :ok, socket}
+      error ->
+        Logger.error(inspect(error))
+        {:reply, {:error, inspect(error)}, socket}
+    end
   end
 
   @impl true
   def handle_in("remove_user_permission",
                %{"user_key" => key},
                socket) do
-    response = Document.remove_user_permission(socket.assigns.id, socket.assigns.key, key)
-    {:reply, response, socket}
+    case Document.remove_user_permission(socket.assigns.id, socket.assigns.key, key) do
+      :ok ->
+        broadcast_from!(socket, "remove_user_permission", %{"user" => key})
+        {:reply, :ok, socket}
+      error ->
+        Logger.error(inspect(error))
+        {:reply, {:error, inspect(error)}, socket}
+    end
   end
 end

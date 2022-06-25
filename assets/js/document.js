@@ -24,6 +24,8 @@ export default class Document {
                 this.channel.on("update", (resp) =>
                     this.onRemoteUpdate(resp)
                 );
+                this.channel.on("update_user_permission", (resp) => this.onRemotePermUpdate(resp));
+                this.channel.on("remove_user_permission", (resp) => this.onRemotePermRemove(resp));
             })
             .receive("error", (resp) => {
                 console.log("Socket Error", resp);
@@ -156,6 +158,22 @@ export default class Document {
         this.logState("UPDATED STATE");
     }
 
+    onRemotePermUpdate({user, perm}) {
+        let item = document.querySelector(`[data-user="${user}"]`);
+
+        if (!item) {
+            let list = document.querySelector("#perm-list");
+            item = this.createPermItem(user, perm);
+            list.appendChild(item);
+        } else {
+            this.updateSelect(item.querySelector("select"), false, perm);
+        }
+    }
+
+    onRemotePermRemove({user}) {
+        let item = document.querySelector(`[data-user="${user}"`).remove();
+    }
+
     save(e) {
         this.channel
             .push("save", {})
@@ -167,7 +185,7 @@ export default class Document {
         let user_key = document.querySelector("[name=new_user_key]").value;
         let new_perm = document.querySelector("[name=new_user_perm]").value;
 
-        if (document.querySelector(`[data-user=${user_key}]`)) {
+        if (document.querySelector(`[data-user="${user_key}"]`)) {
             alert("Ese usuario ya tiene permiso!")
             return;
         }
@@ -176,15 +194,7 @@ export default class Document {
             .push("update_user_permission", {user_key, new_perm})
             .receive("ok", () => {
                 let list = document.querySelector("#perm-list");
-                let new_item = document.querySelector("#user-list-item").content.cloneNode(true);
-
-                new_item.querySelector("h3").innerText = user_key;
-                new_item.querySelector("li").dataset["user"] = user_key;
-                new_item.querySelector("button").setAttribute("onclick", `doc.removePerm("${user_key}")`);
-
-                let select = new_item.querySelector("select")
-                select.value = new_perm;
-                select.setAttribute("onchange", `doc.updatePerm(this, "${user_key}")`);
+                let new_item = this.createPermItem(user_key, new_perm);
 
                 list.appendChild(new_item);
             })
@@ -195,7 +205,7 @@ export default class Document {
         this.channel
             .push("remove_user_permission", {user_key})
             .receive("ok", () => {
-                document.querySelector(`[data-user=${user_key}]`).remove();
+                document.querySelector(`[data-user="${user_key}"]`).remove();
             })
             .receive("error", () => alert("Error al eliminar un permiso"));
     }
@@ -237,6 +247,20 @@ export default class Document {
         });
     }
 
+    createPermItem(user_key, perm) {
+        let new_item = document.querySelector("#user-list-item").content.cloneNode(true);
+
+        new_item.querySelector("h3").innerText = user_key;
+        new_item.querySelector("li").dataset["user"] = user_key;
+        new_item.querySelector("button").setAttribute("onclick", `doc.removePerm("${user_key}")`);
+
+        let select = new_item.querySelector("select")
+        select.value = perm;
+        select.setAttribute("onchange", `doc.updatePerm(this, "${user_key}")`);
+
+        return new_item;
+    }
+
     updateButton(button, text) {
         const prevText = button.innerText;
 
@@ -254,7 +278,7 @@ export default class Document {
     updateSelect(select, disabled, value) {
         select.disabled = disabled;
         if (value) {
-            select.dataset.lastValue = value;
+            select.value = value;
         } else {
             select.dataset.lastValue = select.value;
         }
