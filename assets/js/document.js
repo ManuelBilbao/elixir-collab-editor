@@ -167,7 +167,7 @@ export default class Document {
         let user_key = document.querySelector("[name=new_user_key]").value;
         let new_perm = document.querySelector("[name=new_user_perm]").value;
 
-        if (!document.querySelector(`[name=${user_key}]`)) {
+        if (document.querySelector(`[data-user=${user_key}]`)) {
             alert("Ese usuario ya tiene permiso!")
             return;
         }
