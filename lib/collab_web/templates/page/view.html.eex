@@ -77,10 +77,8 @@
 											<h3 class="mb-0"><%= user.user %></h3>
 										</div>
 										<div class="col-auto">
-											<select name="" id="" style="width: 100%;">
-
+											<select name="perm" style="width: 100%;" onchange="doc.updatePerm(this, '<%= user.user %>')" data-last-value="<%= user.perm %>">
 												<%= for permission <- @refs_permissions do %>
-
 													<%= if @user_permission > permission.perm do %>
 														<%= if user.perm == permission.perm do %>
 															<option selected value= <%= permission.perm %> > <%= permission.desc %> </option>

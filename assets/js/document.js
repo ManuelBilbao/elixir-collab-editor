@@ -177,10 +177,15 @@ export default class Document {
             .receive("ok", () => {
                 let list = document.querySelector("#perm-list");
                 let new_item = document.querySelector("#user-list-item").content.cloneNode(true);
+
                 new_item.querySelector("h3").innerText = user_key;
                 new_item.querySelector("li").dataset["user"] = user_key;
-                new_item.querySelector("select").value = new_perm;
                 new_item.querySelector("button").setAttribute("onclick", `doc.removePerm("${user_key}")`);
+
+                let select = new_item.querySelector("select")
+                select.value = new_perm;
+                select.setAttribute("onchange", `doc.updatePerm(this, "${user_key}")`);
+
                 list.appendChild(new_item);
             })
             .receive("error", () => alert("Error al agregar un permiso"));
@@ -193,6 +198,18 @@ export default class Document {
                 document.querySelector(`[data-user=${user_key}]`).remove();
             })
             .receive("error", () => alert("Error al eliminar un permiso"));
+    }
+
+    updatePerm(select, user_key) {
+        let last = select.dataset.lastValue;
+        this.updateSelect(select, true)
+
+        // setTimeout(() => {
+            this.channel
+                .push("update_user_permission", {user_key, new_perm: select.value})
+                .receive("ok", () => this.updateSelect(select, false))
+                .receive("error", () => this.updateSelect(select, false, last));
+        // }, 1000);
     }
 
     // Flatten delta to plain text and display value in editor
@@ -232,5 +249,14 @@ export default class Document {
             button.classList.remove("button-outline");
             button.disabled = false;
         }, 1500);
+    }
+
+    updateSelect(select, disabled, value) {
+        select.disabled = disabled;
+        if (value) {
+            select.dataset.lastValue = value;
+        } else {
+            select.dataset.lastValue = select.value;
+        }
     }
 }
