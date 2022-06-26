@@ -9,11 +9,10 @@ export default class Document {
     committing = null; // Local change being currently pushed
     queued = null; // Pending change yet to be pushed
 
-    usersPermissions = null;
-
     constructor(socket) {
-        const id = document.querySelector("#name").value;
-        const key = document.querySelector("#key").value;
+        const id = this.id = document.querySelector("#name").value;
+        const key = this.key = document.querySelector("#key").value;
+
         this.channel = socket.channel(`doc:${id}`, { key });
 
         // Join document channel and set up event listeners
@@ -75,6 +74,7 @@ export default class Document {
     // Show initial contents on joining the document channel
     onOpen({ contents, version, perm }) {
         this.editor = (perm == 0) ? this.initViewer() : this.initEditor();
+        this.perm = perm;
 
         this.logState("CURRENT STATE");
 
@@ -159,6 +159,12 @@ export default class Document {
     }
 
     onRemotePermUpdate({user, perm}) {
+        if (user == this.key)
+            location.reload();
+
+        if (perm >= this.perm)
+            return;
+
         let item = document.querySelector(`[data-user="${user}"]`);
 
         if (!item) {
@@ -171,6 +177,9 @@ export default class Document {
     }
 
     onRemotePermRemove({user}) {
+        if (user == this.key)
+            location.reload();
+
         let item = document.querySelector(`[data-user="${user}"`).remove();
     }
 
