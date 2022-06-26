@@ -14,31 +14,12 @@ const addListener = (selector, event, fun) => {
 };
 
 
-// New Document
-addListener('#new-doc', 'click', (e) => {
-  const randomId = Math.random().toString(36).substring(2, 7);
-  window.location = `/${randomId}`;
-});
-
 // Open existing document
 addListener('#open-doc', 'submit', (e) => {
   e.preventDefault();
   const id = new FormData(e.target).get('id');
-  window.location = `/${id}`;
+  const key = new FormData(e.target).get("key");
+  window.location = `/${id}/${key}/`;
 });
 
-
-// Initialize editor
-const Editor = toastui.Editor;
-const { codeSyntaxHighlight } = Editor.plugin;
-
-const editor = new Editor({
-  el: document.querySelector('#editor'),
-  height: '500px',
-  initialEditType: 'wysiwyg',
-  previewStyle: 'vertical',
-  usageStatistics: false,
-  plugins: [codeSyntaxHighlight]
-});
-
-window.doc = new Document(editor, socket);
+window.doc = new Document(socket);

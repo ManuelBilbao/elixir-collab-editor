@@ -4,36 +4,93 @@ defmodule CollabWeb.DocChannel do
   require Logger
 
   @impl true
-  def join("doc:" <> id, _payload, socket) do
-    {:ok, _pid} = Document.open(id)
-    socket = assign(socket, :id, id)
-    send(self(), :after_join)
+  def join("doc:" <> id, %{"key" => key}, socket) do
+    func = case Collab.Repo.get_by(Collab.Doc, name: id) do
+      nil -> &Document.new/2
+      _doc -> &Document.open/2
+    end
 
-    {:ok, socket}
+    case func.(id, key) do
+      {:error, desc} ->
+        Logger.error(inspect(desc))
+        {:error, desc}
+
+      {:ok, _pid} ->
+        socket = assign(socket, :id, id)
+        socket = assign(socket, :key, key)
+        send(self(), :after_join)
+        {:ok, socket}
+    end
+
   end
 
   @impl true
   def handle_info(:after_join, socket) do
-    response = Document.get_contents(socket.assigns.id)
+    contents = Document.get_contents(socket.assigns.id, socket.assigns.key)
+    perm = Collab.Repo.get_by(Collab.Permiso, document: socket.assigns.id, user: socket.assigns.key)
+    response = Map.put(contents, :perm, perm.perm)
+
     push(socket, "open", response)
 
     {:noreply, socket}
   end
 
   @impl true
-  def handle_in("save", _, socket) do
-    response = Document.save(socket.assigns.id)
+  def handle_in("save", %{}, socket) do
+    response = Document.save(socket.assigns.id, socket.assigns.key)
     {:reply, response, socket}
   end
 
   @impl true
-  def handle_in("update", %{"change" => change, "version" => version}, socket) do
-    case Document.update(socket.assigns.id, change, version) do
+  def handle_in(
+        "update",
+        %{"change" => change, "version" => version},
+        socket
+      ) do
+    case Document.update(socket.assigns.id, change, version, socket.assigns.key) do
       {:ok, response} ->
         # Process.sleep(1000)
         broadcast_from!(socket, "update", response)
         {:reply, :ok, socket}
 
+      error ->
+        Logger.error(inspect(error))
+        {:reply, {:error, inspect(error)}, socket}
+    end
+  end
+
+  @impl true
+  def handle_in(
+        "get_users_permissions",
+        %{},
+        socket
+      ) do
+    response = Document.get_users_permissions(socket.assigns.id, socket.assigns.key)
+    {:reply, response, socket}
+  end
+
+  @impl true
+  def handle_in("update_user_permission",
+               %{"user_key" => key, "new_perm" => perm},
+               socket) do
+    case Document.update_user_permission(socket.assigns.id, socket.assigns.key, key, perm) do
+      :ok ->
+        broadcast_from!(socket, "update_user_permission", %{"user" => key, "perm" => perm})
+        {:reply, :ok, socket}
+      error ->
+        Logger.error(inspect(error))
+        {:reply, {:error, inspect(error)}, socket}
+    end
+  end
+
+  @impl true
+  def handle_in("remove_user_permission",
+               %{"user_key" => key},
+               socket) do
+    case Document.remove_user_permission(socket.assigns.id, socket.assigns.key, key) do
+      :ok ->
+        broadcast_from!(socket, "remove_user_permission", %{"user" => key})
+        {:reply, :ok, socket}
       error ->
         Logger.error(inspect(error))
         {:reply, {:error, inspect(error)}, socket}

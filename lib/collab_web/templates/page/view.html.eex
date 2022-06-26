@@ -1,7 +1,105 @@
-<h2>Document ID: <code><%= @id %></code></h2>
+<div class="row">
+	<div class="col align-self-center">
+		<h2 class="mb-0">Document ID: <code><%= @id %></code></h2>
+	</div>
+
+	<%= if @user_permission > 0  do %>
+		<div class="col-auto">
+			<button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#permissions-modal">
+				Share
+			</button>
+		</div>
+	<% end %>
+</div>
 
 <input type="hidden" id="name" value="<%= @id %>" />
+<input type="hidden" id="key" value="<%= @key %>" />
 
-<div id="editor" data-name="<=% @id %>"></div>
+<div id="editor" data-name="<=% @id %>" style="padding: 0; margin: 10px 0;"></div>
 
-<button type="button" onclick="doc.save(this);">Save</button>
+<button type="button" onclick="doc.save(this);" style="border-radius: 0.4rem; width: 90px;">Save</button>
+
+<%= if @user_permission > 0 do %>
+	<div class="modal fade" id="permissions-modal" tabindex="-1">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Share</h5>
+					<button class="btn-close" type="button" data-bs-dismiss="modal"></button>
+				</div>
+				<div class="modal-body">
+					<div class="container">
+						<div class="row">
+							<div class="col"><input type="text" name="new_user_key" placeholder="User key..."></div>
+							<div class="col-auto">
+								<select name="new_user_perm" style="width: 100%;">
+									<%= for permission <- @refs_permissions do %>
+										<%= if @user_permission > permission.perm do %>
+											<option value= <%= permission.perm %> > <%= permission.desc %> </option>
+										<% end %>
+									<% end %>
+
+								</select>
+							</div>
+							<div class="col-auto"><input type="submit" value="Add" style="width: 90px;" onclick="doc.addPerm()"></div>
+						</div>
+
+						<hr>
+
+						<template id="user-list-item">
+							<li>
+								<div class="row">
+									<div class="col align-self-center">
+										<h3 class="mb-0"></h3>
+									</div>
+									<div class="col-auto">
+										<select name="perm" style="width: 100%;">
+											<%= for permission <- @refs_permissions do %>
+												<%= if @user_permission > permission.perm do %>
+													<option value= <%= permission.perm %> > <%= permission.desc %> </option>
+												<% end %>
+											<% end %>
+										</select>
+
+									</div>
+									<div class="col-auto">
+										<button style="border-radius: 0.4rem; width: 90px;">X</button>
+									</div>
+								</div>
+							</li>
+						</template>
+
+						<ul class="p-0" id="perm-list" style="list-style: none;">
+							<%= for user <- @all_users_permissions do %>
+								<li data-user="<%= user.user %>">
+									<div class="row">
+										<div class="col align-self-center">
+											<h3 class="mb-0"><%= user.user %></h3>
+										</div>
+										<div class="col-auto">
+											<select name="perm" style="width: 100%;" onchange="doc.updatePerm(this, '<%= user.user %>')" data-last-value="<%= user.perm %>">
+												<%= for permission <- @refs_permissions do %>
+													<%= if @user_permission > permission.perm do %>
+														<%= if user.perm == permission.perm do %>
+															<option selected value= <%= permission.perm %> > <%= permission.desc %> </option>
+														<% else %>
+															<option value= <%= permission.perm %> > <%= permission.desc %> </option>
+														<% end %>
+													<% end %>
+												<% end %>
+											</select>
+
+										</div>
+										<div class="col-auto">
+											<button style="border-radius: 0.4rem; width: 90px;" onclick="doc.removePerm('<%= user.user %>')">X</button>
+										</div>
+									</div>
+								</li>
+							<% end %>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+<% end %>
