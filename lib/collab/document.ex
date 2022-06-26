@@ -10,6 +10,8 @@ defmodule Collab.Document do
     do: GenServer.start_link(__MODULE__, {:ok, id}, name: name(id))
 
   def stop(id), do: GenServer.stop(name(id))
+  def add_connection(id, socket_id), do: call(id, {:add_connection, socket_id})
+  def remove_connection(id, socket_id), do: call(id, {:remove_connection, socket_id})
 
   def get_contents(id, key), do: call(id, {:get_contents, key})
   def save(id, key), do: call(id, {:save, key})
@@ -63,7 +65,8 @@ defmodule Collab.Document do
       version: 1,
       changes: [%{"insert" => content}],
       contents: [%{"insert" => content}],
-      permissions: Collab.Repo.all(perm_query)
+      permissions: Collab.Repo.all(perm_query),
+      connections: []
     }
 
     {:ok, state}
@@ -149,7 +152,8 @@ defmodule Collab.Document do
             version: state.version + 1,
             changes: [transformed_change | state.changes],
             contents: Delta.compose(state.contents, transformed_change),
-            permissions: state.permissions
+            permissions: state.permissions,
+            connections: state.connections
           }
 
           if rem(state.version, 5) == 0 do
@@ -223,6 +227,19 @@ defmodule Collab.Document do
           {:reply, :ok, state}
       end
     end
+  end
+
+  @impl true
+  def handle_call({:add_connection, socket_id}, _from, state) do
+    state = Map.replace(state, :connections, state.connections ++ [socket_id])
+    {:reply, :ok, state}
+  end
+
+  @impl true
+  def handle_call({:remove_connection, socket_id}, _from, state) do
+    state = Map.replace(state, :connections, state.connections -- [socket_id])
+
+    {:reply, {:ok, length(state.connections)}, state}
   end
 
   @impl true

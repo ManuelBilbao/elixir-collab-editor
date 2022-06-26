@@ -18,6 +18,7 @@ defmodule CollabWeb.DocChannel do
       {:ok, _pid} ->
         socket = assign(socket, :id, id)
         socket = assign(socket, :key, key)
+        Document.add_connection(id, socket.channel_pid)
         send(self(), :after_join)
         {:ok, socket}
     end
@@ -94,6 +95,16 @@ defmodule CollabWeb.DocChannel do
       error ->
         Logger.error(inspect(error))
         {:reply, {:error, inspect(error)}, socket}
+    end
+  end
+
+  @impl true
+  def terminate(reason, socket) do
+    case Document.remove_connection(socket.assigns.id, socket.channel_pid) do
+      {:ok, 0} ->
+        Document.stop(socket.assigns.id)
+        {:ok}
+      _ -> {:ok}
     end
   end
 end
