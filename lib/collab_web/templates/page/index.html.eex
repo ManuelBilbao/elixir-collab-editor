@@ -1,12 +1,29 @@
-<section class="phx-hero row">
-  <div class="column">
-    <h2>Open/Create Document</h2>
-    <form id="open-doc">
-	    <input name="id" type="text" placeholder="Document name" required style="margin-top: 20px;"/>
-	    <br>
-		  <input name="key" type="text" placeholder="Key" required style="margin-top: 5px;"/>
-		  <br>
-	    <button type="submit" style="border-radius:2px; margin-top:10px;">Go</button>
-    </form>
-  </div>
+<style>
+  label {
+    opacity: .65;
+  }
+</style>
+
+<section class="container">
+	<div class="row">
+		<div class="col-12 col-md-8 col-lg-6">
+			<div class="card">
+				<div class="card-body">
+					<h3 class="card-title">Open/Create Document</h3>
+					<form class="mt-4" id="open-doc">
+						<div class="form-floating mb-3">
+							<input type="text" class="form-control" name="id" id="id" placeholder="Document name">
+							<label for="id">Document name</label>
+						</div>
+						<div class="form-floating mb-3">
+							<input type="text" class="form-control" name="key" id="key" placeholder="Access key" required>
+							<label for="key">Access key</label>
+						</div>
+
+						<button class="btn btn-primary px-4" type="submit">Go!</button>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
 </section>
