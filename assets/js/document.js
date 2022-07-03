@@ -38,7 +38,7 @@ export default class Document {
 
         const editor = new Editor({
           el: document.querySelector('#editor'),
-          height: '500px',
+          height: '70vh',
           initialEditType: 'wysiwyg',
           previewStyle: 'vertical',
           usageStatistics: false,
@@ -60,13 +60,16 @@ export default class Document {
         const viewer = Editor.factory({
             el: document.querySelector("#editor"),
             viewer: true,
-            height: "500px",
+            height: "70vh",
             usageStatistics: false,
             plugins: [codeSyntaxHighlight]
         });
 
+
         viewer.preview.previewContent.style.border = "1px solid gray";
         viewer.preview.previewContent.style.padding = "1em 2em";
+        viewer.preview.previewContent.style.backgroundColor = "white";
+        viewer.preview.previewContent.style.minHeight = "70vh";
 
         return viewer;
     }
@@ -186,12 +189,13 @@ export default class Document {
     save(e) {
         this.channel
             .push("save", {})
-            .receive("ok", () => this.updateButton(e, "Saved!"))
-            .receive("error", () => this.updateButton(e, "Error!"));
+            .receive("ok", () => this.updateButton(e, "Saved", "success"))
+            .receive("error", () => this.updateButton(e, "Error", "danger"));
     }
 
     addPerm() {
-        let user_key = document.querySelector("[name=new_user_key]").value;
+		const user = document.querySelector("[name=new_user_key]");
+        let user_key = user.value;
         let new_perm = document.querySelector("[name=new_user_perm]").value;
 
         if (document.querySelector(`[data-user="${user_key}"]`)) {
@@ -206,6 +210,7 @@ export default class Document {
                 let new_item = this.createPermItem(user_key, new_perm);
 
                 list.appendChild(new_item);
+                user.value = "";
             })
             .receive("error", () => alert("Error al agregar un permiso"));
     }
@@ -257,7 +262,7 @@ export default class Document {
     createPermItem(user_key, perm) {
         let new_item = document.querySelector("#user-list-item").content.cloneNode(true);
 
-        new_item.querySelector("h3").innerText = user_key;
+        new_item.querySelector("h4").innerText = user_key;
         new_item.querySelector("li").dataset["user"] = user_key;
         new_item.querySelector("button").setAttribute("onclick", `doc.removePerm("${user_key}")`);
 
@@ -268,16 +273,20 @@ export default class Document {
         return new_item;
     }
 
-    updateButton(button, text) {
-        const prevText = button.innerText;
+    updateButton(button, text, color) {
+        const prevContent = button.innerHTML;
+        const newIcon = (color == "success") ? "bi-check2" : "bi-x-lg";
 
         button.disabled = true;
-        button.classList.add("button-outline");
-        button.innerText = text;
+        button.classList.replace("btn-primary", `btn-outline-${color}`);
+        button.innerHTML = prevContent.replace(button.innerText, text);
+
+        const icon = button.querySelector(".bi");
+        const prevClasses = icon.classList.replace("bi-cloud-fill", newIcon);
 
         setTimeout(() => {
-            button.innerText = prevText;
-            button.classList.remove("button-outline");
+            button.innerHTML = prevContent;
+            button.classList.replace(`btn-outline-${color}`, "btn-primary");
             button.disabled = false;
         }, 1500);
     }
