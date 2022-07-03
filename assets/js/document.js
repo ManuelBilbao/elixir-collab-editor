@@ -194,7 +194,8 @@ export default class Document {
     }
 
     addPerm() {
-        let user_key = document.querySelector("[name=new_user_key]").value;
+		const user = document.querySelector("[name=new_user_key]");
+        let user_key = user.value;
         let new_perm = document.querySelector("[name=new_user_perm]").value;
 
         if (document.querySelector(`[data-user="${user_key}"]`)) {
@@ -209,6 +210,7 @@ export default class Document {
                 let new_item = this.createPermItem(user_key, new_perm);
 
                 list.appendChild(new_item);
+                user.value = "";
             })
             .receive("error", () => alert("Error al agregar un permiso"));
     }
