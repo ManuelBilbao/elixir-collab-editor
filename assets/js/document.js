@@ -148,9 +148,9 @@ export default class Document {
             }
         }
 
-        const newPosition = remoteDelta.transformPosition(
-            this.editor.selectionStart
-        );
+        const newPosition = (this.perm > 0) ? remoteDelta.transformPosition(
+            this.editor.getSelection()[0]
+        ) : undefined;
         this.contents = this.contents.compose(remoteDelta);
         this.version += 1;
         this.updateEditor(newPosition);
@@ -240,10 +240,8 @@ export default class Document {
             }, "")
         );
 
-        if (position) {
-            this.editor.selectionStart = position;
-            this.editor.selectionEnd = position;
-        }
+        if (position)
+            this.editor.setSelection(position, position);
     }
 
     logState(msg) {
